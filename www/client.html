@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Example API Client</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=">
+</head>
+<body>
+
+<main class="container">
+
+    <div class="grid">
+
+        <!-- Add New Quotation Form-->
+        <div>
+            <form style="display: none">
+                <label for="inputAge">
+                    Age <input name="username" type="text" id="inputAge">
+                </label>
+
+                <label for="inputStartDate">
+                    Start Date <input type="text" name="text" id="inputStartDate">
+                </label>
+
+                <label for="inputEndDate">
+                    End Date <input type="text" name="text" id="inputEndDate">
+                </label>
+
+                <label for="inputCurrency">
+                    Currency ID <input type="text" name="text" id="inputCurrency">
+                </label>
+                <button id="submitQuotation">Submit Quotation</button>
+            </form>
+
+            <!-- Login and logout Form-->
+            <div>
+                <form>
+                    <label for="username">
+                        Username <input name="username" id="username">
+                    </label>
+
+                    <label for="password">
+                        Password <input type="password" name="password" id="password">
+                    </label>
+
+                    <button id="login">Log in</button>
+                </form>
+
+                <button id="getMyQuotations" style="display: none">Get My Quotations</button>
+                <button id="logout" style="display: none">Log out</button>
+            </div>
+
+        </div>
+
+        <!-- Quotations list -->
+        <div>
+            <ul id="quotations"></ul>
+        </div>
+
+        <!-- Individual Quotation -->
+        <div>
+            <dl id="quotationDetails" style="display: none">
+                <strong>
+                    <dt>ID</dt>
+                </strong>
+                <dd id="quotationID">&nbsp;</dd>
+                <strong>
+                    <dt>Start Date</dt>
+                </strong>
+                <dd id="startDate">&nbsp;</dd>
+                <strong>
+                    <dt>End Date</dt>
+                </strong>
+                <dd id="endDate">&nbsp;</dd>
+                <strong>
+                    <dt>Currency Id</dt>
+                </strong>
+                <dd id="currencyId">&nbsp;</dd>
+                <strong>
+                    <dt>Total</dt>
+                </strong>
+                <dd id="total">&nbsp;</dd>
+            </dl>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    const addQuotationForm = document.forms[0];
+    const loginForm = document.forms[1];
+    const loginButton = document.getElementById("login");
+    const getMyQuotationsButton = document.getElementById("getMyQuotations");
+    const submitQuotation = document.getElementById("submitQuotation");
+    const logoutButton = document.getElementById("logout");
+    const list = document.getElementById("quotations");
+    const details = document.getElementById("quotationDetails");
+    const quotationID = document.getElementById("quotationID");
+    const startDate = document.getElementById("startDate");
+    const endDate = document.getElementById("endDate");
+    const currencyId = document.getElementById("currencyId");
+    const total = document.getElementById("total");
+
+    /**
+     * Login
+     */
+    loginForm.addEventListener('submit', async (e) => {
+
+        e.preventDefault();
+
+        const response = await fetch('http://localhost:8000/api/login.php', {
+            method: 'POST',
+            body: JSON.stringify({
+                username: loginForm.username.value,
+                password: loginForm.password.value
+            })
+        });
+
+        const json = await response.text();
+        const obj = JSON.parse(json);
+
+        if (response.status == 200) {
+
+            localStorage.setItem("access_token", obj.access_token);
+            localStorage.setItem("refresh_token", obj.refresh_token);
+
+            loginForm.style.display = "none";
+            logoutButton.style.display = "block";
+            getMyQuotationsButton.style.display = "block";
+            addQuotationForm.style.display = "block";
+
+
+        } else {
+            alert(obj.message);
+        }
+    });
+
+    /**
+     * Logout
+     */
+    logoutButton.addEventListener('click', async (e) => {
+
+        e.preventDefault();
+
+        logoutButton.style.display = "none";
+        getMyQuotationsButton.style.display = "none";
+        details.style.display = "none";
+        addQuotationForm.style.display = "none";
+
+        const response = await fetch('http://localhost:8000/api/logout.php', {
+            method: 'POST',
+            body: JSON.stringify({
+                token: localStorage.getItem("refresh_token")
+            })
+        });
+
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+
+        list.style.display = "none";
+        loginForm.style.display = "block";
+    });
+
+    /**
+     * Get User Quotations
+     */
+    getMyQuotationsButton.addEventListener('click', async (e) => {
+
+        e.preventDefault();
+
+        const response = await fetch("http://localhost:8000/api/quotations", {
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("access_token")
+            }
+        });
+
+        const json = await response.text();
+        const obj = JSON.parse(json);
+
+
+        if (response.status == 200) {
+
+            list.innerHTML = '';
+
+            obj.forEach(async function (quotation) {
+                const anchor = document.createElement("a");
+                const li = document.createElement("li");
+
+                anchor.classList.add('quotationLink');
+                anchor.textContent = quotation.id;
+                anchor.setAttribute('data-id', quotation.id);
+
+                li.appendChild(anchor);
+                list.appendChild(li);
+            });
+        }
+
+        list.style.display = "block";
+        details.style.display = "block";
+
+    });
+
+    /**
+     * Submit New Quotation
+     */
+    submitQuotation.addEventListener('click', async (e) => {
+
+        e.preventDefault();
+
+        var params = {
+            'age': document.getElementById('inputAge').value,
+            'start_date': document.getElementById('inputStartDate').value,
+            'end_date': document.getElementById('inputEndDate').value,
+            'currency_id': document.getElementById('inputCurrency').value
+        };
+
+        var newQuotationData = JSON.stringify(params);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'http://localhost:8000/api/quotations', true);
+        xhr.setRequestHeader('Content-type', 'application/json');
+        xhr.setRequestHeader('Authorization', "Bearer " + localStorage.getItem("access_token"));
+        xhr.onload = function () {
+            console.log(this.responseText);
+        }
+        xhr.send(newQuotationData);
+
+    });
+
+    /**
+     * Get individual quotation
+     */
+    list.addEventListener('click', async (e) => {
+
+        e.preventDefault();
+
+        const id = e.target.getAttribute("data-id");
+
+        if (id) {
+
+            const response = await fetch(`http://localhost:8000/api/quotations/${id}`, {
+                headers: {
+                    "Authorization": "Bearer " + localStorage.getItem("access_token")
+                }
+            });
+
+            const json = await response.text();
+            const obj = JSON.parse(json);
+
+            if (response.status == 200) {
+
+                quotationID.innerHTML = obj.id + "&nbsp;";
+                startDate.innerHTML = obj.start_date + "&nbsp;";
+                endDate.innerHTML = obj.end_date + "&nbsp;";
+                currencyId.innerHTML = obj.currency_id + "&nbsp;";
+                total.innerHTML = obj.total + "&nbsp;";
+
+            } else {
+
+                console.log("Access token expired, requesting new one");
+
+                const response = await fetch('http://localhost:8000/api/refresh.php', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        token: localStorage.getItem("refresh_token")
+                    })
+                });
+
+                const json = await response.text();
+                const obj = JSON.parse(json);
+
+                if (response.status == 200) {
+
+                    console.log("Got new access token and refresh token");
+
+                    localStorage.setItem("access_token", obj.access_token);
+                    localStorage.setItem("refresh_token", obj.refresh_token);
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

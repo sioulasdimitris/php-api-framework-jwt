@@ -1,0 +1,4 @@
+.idea/*
+www/vendor/*
+www/composer.lock
+www/.env
