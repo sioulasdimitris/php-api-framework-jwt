@@ -41,8 +41,6 @@ $user_id = $auth->getUserID();
 
 $quotationGateway = new QuotationGateway($database);
 
-$x = $_SERVER;
-
 $controller = new QuotationController($quotationGateway, $user_id);
 $controller->processRequest($_SERVER["REQUEST_METHOD"], $id);
 
