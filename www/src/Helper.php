@@ -25,7 +25,7 @@ class Helper
         }
     }
 
-    #verify currency
+    #verify currency format "EUR", "USD", "GBP"
     public static function isCurrencyValid($currencyId): bool
     {
         switch ($currencyId) {
