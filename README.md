@@ -29,7 +29,7 @@
 * client.html
 
 # database configuration
-* create an .env file identical as .env-TEAMMPLATE for database credentials
+* create an .env file identical as .env-TEMPLATE for database credentials
 * mysql database
 
 #database schema
